@@ -1,0 +1,11 @@
+[package]
+name = "tut"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+mongodb = "3.2.1"
+rust-tradier = { path = "../rust-tradier" }
+serde = "1.0.218"
+serde_json = "1.0.139"
+tokio = { version = "1.43.0", features = ["rt-multi-thread"] }
