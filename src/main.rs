@@ -1,34 +1,24 @@
-use std::env;
-use mongodb::Collection;
-use rust_tradier::account;
-use rust_tradier::account::Order;
+use manual::orders_from_file;
+use processor::Processor;
 
-use prep::{Test, Decorate};
+mod manual;
 mod mongo;
 mod prep;
+mod processor;
+mod test;
 
 #[tokio::main]
 async fn main() {
-    let test = Test { id: 1, value: "test".to_string() };
-    let wrapper = test.decorate();
-    // let wrapper = Wrapper { _id: uuid7::uuid7(), ts: Utc::now(), native_id: test.native_id(), obj: test };
-    println!("{:?}", wrapper);
-    if true {
-        return;
-    }
+    color_backtrace::install();
+    let proc = Processor::new().await;
+    // proc_from_file(proc, "data/orders.json").await;
+    proc.proc_orders().await;
+}
 
-    let account_id = env::var("TRADIER_ACCOUNT_ID")
-        .expect("Required TRADIER_ACCOUNT_ID environment variable was not found");
-    let orders = account::fetch_orders(&account_id).await.unwrap();
-    // println!("{}", serde_json::to_string_pretty(&orders).unwrap());
-    println!("{:?}", orders);
+async fn proc_from_file(proc: Processor, file: &str) {
+    let orders = orders_from_file(file);
 
-    if let Some(orders) = orders {
-        let database = mongo::db("journey").await;
-        let collection: Collection<Order> = mongo::collection(&database, "orders");
-        // TODO: Add decoration, hash, and check for duplicates
-        mongo::insert_many(&collection, orders).await;
-    } else {
-        println!("No orders found");
+    for order in orders {
+        proc.proc_order(order).await;
     }
 }

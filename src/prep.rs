@@ -1,59 +1,56 @@
+use bson::serde_helpers::uuid_1_as_binary;
 use chrono::{DateTime, Utc};
 use rust_tradier::account::Order;
-use uuid7::Uuid;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
-pub trait NativeId {
-    fn native_id(&self) -> String;
+pub trait Uniqueness {
+    fn uniqueness(&self) -> String;
 }
 
-#[derive(Serialize,Deserialize,Debug)]
-pub struct Test {
-    pub id: u64,
-    pub value: String
-}
-
-impl NativeId for Test {
-    fn native_id(&self) -> String {
-        self.id.to_string()
+impl Uniqueness for Order {
+    fn uniqueness(&self) -> String {
+        format!("or|{}", self.id)
     }
 }
 
-impl NativeId for Order {
-    fn native_id(&self) -> String {
-        self.id.to_string()
-    }
-}
-
-#[derive(Serialize,Deserialize,Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Wrapper<T> {
-    #[serde(serialize_with = "serialize_uuid", deserialize_with = "deserialize_uuid")]
+    // #[serde(serialize_with = "serialize_uuid", deserialize_with = "deserialize_uuid")]
+    #[serde(with = "uuid_1_as_binary")]
     pub _id: Uuid,
     pub ts: DateTime<Utc>,
-    pub native_id: String,
+    pub uniqueness: String,
     pub obj: T,
 }
 
 pub trait Decorate {
-    fn decorate(self) -> Wrapper<Self> where Self: Sized;
+    fn decorate(self) -> Wrapper<Self>
+    where
+        Self: Sized;
 }
 
-impl<T: NativeId> Decorate for T {
+impl<T: Uniqueness> Decorate for T {
     fn decorate(self) -> Wrapper<Self> {
-        let uuid = uuid7::uuid7();
-        Wrapper { _id: uuid, ts: Utc::now(), native_id: self.native_id(), obj: self }
+        let uuid = Uuid::now_v7();
+        Wrapper {
+            _id: uuid,
+            ts: Utc::now(),
+            uniqueness: self.uniqueness(),
+            obj: self,
+        }
     }
 }
 
-fn serialize_uuid<S>(uuid: &Uuid, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer {
-    serializer.serialize_bytes(uuid.as_bytes())
-}
+// fn serialize_uuid<S>(uuid: &Uuid, serializer: S) -> Result<S::Ok, S::Error>
+// where
+//     S: serde::Serializer {
+//     serializer.serialize_bytes(uuid.as_bytes())
+// }
 
-fn deserialize_uuid<'de, D>(deserializer: D) -> Result<Uuid, D::Error>
-where
-    D: serde::Deserializer<'de> {
-    let bytes = <[u8; 16]>::deserialize(deserializer)?;
-    Ok(Uuid::from(bytes))
-}
+// fn deserialize_uuid<'de, D>(deserializer: D) -> Result<Uuid, D::Error>
+// where
+//     D: serde::Deserializer<'de> {
+//     let bytes = <[u8; 16]>::deserialize(deserializer)?;
+//     Ok(Uuid::from(bytes))
+// }
