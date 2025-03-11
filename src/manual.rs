@@ -1,14 +1,13 @@
 use std::{fs::File, io::BufReader};
 
-use rust_tradier::account::{Order, OrdersResponse};
+use rust_tradier::account::{Order, OrdersResponse, value_to_orders};
 
 use crate::{prep::Decorate, test::Test};
 
 pub(crate) fn orders_from_file(path: &str) -> Vec<Order> {
     let file = File::open(path).unwrap();
     let reader = BufReader::new(file);
-    let resp: OrdersResponse = serde_json::from_reader(reader).unwrap();
-    resp.orders.map(|orders| orders.order).unwrap()
+    value_to_orders(serde_json::from_reader(reader).unwrap()).unwrap()
 }
 
 pub(crate) fn test() {
