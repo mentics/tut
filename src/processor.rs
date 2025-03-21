@@ -39,21 +39,13 @@ impl Processor {
     }
 
     pub async fn proc_order(&self, order: Order) {
+        if order.status != "filled" {
+            println!("Order {} is not filled, skipping.", order.id);
+            return;
+        }
+        println!("Processing order: {}", order.id);
         let filter = doc! { "uniqueness": order.uniqueness() };
         println!("checking for existing uniqueness: |{}|", order.uniqueness());
-
-        // let collection: Collection<Document> = self.db.collection("order");
-
-        // // let filter = doc! {};
-        // if let Some(document) = collection.find_one(filter).await.unwrap() {
-        //     println!(
-        //         "Document: {}",
-        //         serde_json::to_string_pretty(&document).unwrap()
-        //     );
-        // } else {
-        //     println!("No documents found.");
-        // }
-
         let existing = self.coll_orders.find_one(filter).await;
         println!("existing: {:?}", existing);
         match existing {
@@ -61,8 +53,8 @@ impl Processor {
                 println!("Order {} already exists in db.", order.uniqueness());
             }
             Ok(None) => {
-                // let wrapped = order.decorate();
-                // mongo::insert(&self.coll_orders, wrapped).await;
+                let wrapped = order.decorate();
+                mongo::insert(&self.coll_orders, wrapped).await;
             }
             Err(e) => {
                 eprintln!("Error checking for existing order: {:?}", e);
